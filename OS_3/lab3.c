@@ -13,7 +13,9 @@ void * func1() {
     while(flag1 == 0) {
         buf = pathconf("./", 3);
         int rv = write(fd[1], &buf, sizeof(long));
-        printf("%d", rv);
+        if (rv < 0) {
+            perror("Ошибка при записи\n");
+        }
         sleep(1);
     }
     printf("поток 1 закончил работу\n");
@@ -24,9 +26,16 @@ void * func2() {
     printf("поток 2 начал работу\n");
     long buf;
     while(flag2 == 0) {
-        read(fd[0], &buf, sizeof(long));
-        printf("%ld", buf);
-        sleep(1);
+        int rv = read(fd[0], &buf, sizeof(long));
+        if (rv == -1) {
+            perror("Ошибка при чтении\n");
+        }
+        if (rv == 0) {
+            printf("EOF\n");
+        }
+        if (rv > 0) {
+            printf("%ld", buf);
+        }
     }
     printf("поток 2 закончил работу\n");
     pthread_exit((void*)2);
