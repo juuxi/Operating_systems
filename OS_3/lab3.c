@@ -14,7 +14,7 @@ void * func1() {
     printf("поток 1 начал работу\n");
     long buf;
     while(flag1 == 0) {
-        buf = pathconf("./", 3);
+        buf = pathconf("./", _PC_NAME_MAX);
         int rv = write(fd[1], &buf, sizeof(long));
         if (rv < 0) {
             perror("Ошибка при записи\n");
@@ -38,7 +38,7 @@ void * func2() {
         }
         if (rv > 0) {
             printf("%ld", buf);
-            sleep(1);
+            fflush(stdout);
         }
     }
     printf("поток 2 закончил работу\n");
