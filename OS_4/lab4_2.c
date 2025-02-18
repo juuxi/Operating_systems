@@ -9,7 +9,9 @@ int main(int argc, char* argv[]) {
     pid_t pid = fork();
     int status;
     if (pid == 0) {
-        execlp("lab4_1.c", argv[0], argv[1], NULL);
+        if (execlp("lab4_1", "lab4_1", argv[1], NULL) == -1) {
+            perror("");
+        }
     } else if (pid > 0) {
         while (waitpid(pid, &status, WNOHANG) == 0) {
             printf("Ждем\n");
