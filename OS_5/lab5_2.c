@@ -7,7 +7,8 @@
 #include <sys/select.h>
 
 int main () {
-    sem_t* sem = sem_open("/my_sem", O_CREAT, O_RDWR, 1);
+    printf("Программа 2 начала работу\n");
+    sem_t* sem = sem_open("/my_sem", O_CREAT, 0644, 1);
     int file_dis;
     file_dis = open("./lab5.txt", O_CREAT|O_WRONLY);
     fd_set rfds;
@@ -26,7 +27,9 @@ int main () {
         } //Выход из КУ
         sem_post(sem);
         sleep(1);
+        printf("Программа 2 ожидает нажатия клавиши\n");
         if (select(1, &rfds, NULL, NULL, &timeout) != 0) {
+            printf("Клавиша в программе 2 нажата\n");
             break;
         } else {
             FD_SET(0, &rfds);
@@ -35,4 +38,5 @@ int main () {
     close(file_dis);
     sem_close(sem);
     sem_unlink("/my_sem");
+    printf("Программа 2 завершила работу\n");
 }
