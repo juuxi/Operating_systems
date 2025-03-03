@@ -10,7 +10,7 @@ int main () {
     printf("Программа 1 начала работу\n");
     sem_t* sem = sem_open("/my_sem", O_CREAT, 0644, 1);
     int file_dis;
-    file_dis = open("./lab5.txt", O_CREAT|O_WRONLY);
+    file_dis = open("./lab5.txt", O_CREAT|O_WRONLY|O_APPEND);
     fd_set rfds;
     FD_SET(0, &rfds);
     struct timeval timeout;
