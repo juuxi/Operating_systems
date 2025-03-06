@@ -17,19 +17,19 @@ sem_t* read_sem;
 int shm_id;
 char* addr;
 long local_v;
+int file;
 
 void * func1() {
-    printf("поток 1 начал работу\n");
+    printf("поток начал работу\n");
     long local_v;
     while(flag1 == 0) {
         sem_wait(write_sem);
-        sem_wait(read_sem);
         memcpy(&local_v, addr, sizeof(long));
-        printf("%ld", local_v);
+        printf("%ld\n", local_v);
         sem_post(read_sem);
         sleep(1);
     }
-    printf("поток 1 закончил работу\n");
+    printf("поток закончил работу\n");
 }
 
 void sig_handler() {
@@ -43,17 +43,19 @@ void sig_handler() {
 }
 
 int main(int argc, char* argv[]) {
-    printf("программа начала работу\n");
+    printf("программа 2 начала работу\n");
     signal(SIGINT, sig_handler);
+    file = open("./lab6.txt", O_CREAT);
+    close(file);
     pthread_t id1;
-    key_t shm_key = ftok("lab6.txt", argv[optind+1][0]);
+    key_t shm_key = ftok("./lab6.txt", argv[optind+1][0]);
     if (shm_key == -1) {
         perror("ftok");
     }
     shm_id = shmget(shm_key, 4096, IPC_CREAT|0666);
     addr = shmat(shm_id, NULL, SHM_RDONLY);
-    write_sem = sem_open("/write_sem", O_CREAT, 0644, 1);
-    read_sem = sem_open("/read_sem", O_CREAT, 0644, 1);
+    write_sem = sem_open("/write_sem", O_CREAT, 0644, 0);
+    read_sem = sem_open("/read_sem", O_CREAT, 0644, 0);
     pthread_create(&id1, NULL, func1, NULL);
     printf("программа ждет нажатия клавиши\n");
     getchar();
@@ -61,6 +63,9 @@ int main(int argc, char* argv[]) {
     flag1 = 1;
     pthread_join(id1, NULL);
 
+    sem_unlink("/write_sem");
+    sem_unlink("/read_sem");
     shmdt(addr);
     shmctl(shm_id, IPC_RMID, NULL);
+    printf("программа 2 закончила работу\n");
 }
