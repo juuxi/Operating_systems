@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <pthread.h>
 #include <signal.h>
+#include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <fcntl.h>
@@ -22,7 +23,7 @@ void * func1() {
         printf("%ld\n", buf);
         char msg[sizeof(long)];
         sprintf(msg, "%ld", buf);
-        int result = mq_send(queue, "a", sizeof(long), 1);
+        int result = mq_send(queue, msg, sizeof(long), 1);
         if (result == -1) {
             perror("send");
         }
@@ -34,16 +35,13 @@ void * func1() {
 int main() {
     printf("программа 1 начала работу\n");
     pthread_t id1;
+    struct mq_attr attr;  
+    attr.mq_flags = 0;  
+    attr.mq_maxmsg = 10;  
+    attr.mq_msgsize = 16;  
+    attr.mq_curmsgs = 0; 
 
-    queue = mq_open("/my_q", O_CREAT|O_WRONLY|O_NONBLOCK, 0644, NULL);
-    struct mq_attr queue_attr;
-    mq_getattr(queue, &queue_attr);
-    struct mq_attr new_queue_attr = queue_attr;
-    new_queue_attr.mq_msgsize = 16;
-    int res = mq_setattr(queue, &new_queue_attr, &queue_attr);
-    if (res == -1) {
-        perror("attr");
-    }
+    queue = mq_open("/my_q", O_CREAT|O_WRONLY|O_NONBLOCK, 0644, &attr);
 
     pthread_create(&id1, NULL, func1, NULL);
     printf("программа ждет нажатия клавиши\n");

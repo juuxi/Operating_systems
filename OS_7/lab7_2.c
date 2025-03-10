@@ -16,10 +16,9 @@ mqd_t queue;
 
 void * func1() {
     printf("поток начал работу\n");
-    char buf[sizeof(long)];
+    char buf[50];
     while(flag1 == 0) { //error msg too long keeps occuring even though currently 1 byte is sent
-        unsigned prio;
-        int result = mq_receive(queue, buf, sizeof(char), &prio);
+        int result = mq_receive(queue, buf, 50, NULL);
         if (result > 0) {
             printf("%s\n", buf);
         }
@@ -34,13 +33,13 @@ void * func1() {
 int main() {
     printf("программа 2 начала работу\n");
     pthread_t id1;
+    struct mq_attr attr;  
+    attr.mq_flags = 0;  
+    attr.mq_maxmsg = 10;  
+    attr.mq_msgsize = 16;  
+    attr.mq_curmsgs = 0; 
 
-    queue = mq_open("/my_q", O_CREAT|O_RDONLY|O_NONBLOCK, 0644, NULL);
-    struct mq_attr queue_attr;
-    mq_getattr(queue, &queue_attr);
-    struct mq_attr new_queue_attr = queue_attr;
-    new_queue_attr.mq_msgsize = 16;
-    mq_setattr(queue, &new_queue_attr, &queue_attr);
+    queue = mq_open("/my_q", O_CREAT|O_RDONLY|O_NONBLOCK, 0644, &attr);
 
     pthread_create(&id1, NULL, func1, NULL);
     printf("программа ждет нажатия клавиши\n");
