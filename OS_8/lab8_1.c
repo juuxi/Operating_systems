@@ -16,17 +16,22 @@
 
 int flag1 = 0;
 int client_sock;
+struct sockaddr_un addr;
 
 void * func1() {
     printf("поток начал работу\n");
     int send_msg = 1;
     while(flag1 == 0) {
-        struct sockaddr_un addr;
+        send_msg = pathconf("./", _PC_NAME_MAX);
         addr.sun_family = AF_UNIX;
         strncpy(addr.sun_path,"socket.soc",sizeof(addr.sun_path) - 1);
-        int rv = sendto(client_sock, &send_msg, sizeof(int), 0, &addr, sizeof(addr));
+        int rv = sendto(client_sock, &send_msg, sizeof(int), 0, (struct sockaddr*)&addr, sizeof(addr));
         if (rv == -1) {
             perror("snd");
+            sleep(1);
+        }
+        else {
+            printf("%d\n", send_msg);
             sleep(1);
         }
     }
@@ -42,12 +47,12 @@ int main() {
     struct sockaddr_un addr;
     addr.sun_family = AF_UNIX;
     strncpy(addr.sun_path,"socket.soc",sizeof(addr.sun_path) - 1);
-    int rv = bind(client_sock, &addr, sizeof(addr));
+    int rv = bind(client_sock, (struct sockaddr*)&addr, sizeof(addr));
     if (rv == -1) {
         perror("bind");
     }
     int optval = 1;
-    rv = setsockopt(client_sock, SOL_SOCKET, SO_REUSEADDR,
+    setsockopt(client_sock, SOL_SOCKET, SO_REUSEADDR,
         &optval, sizeof(optval));
 
     pthread_create(&id1, NULL, func1, NULL);
@@ -56,6 +61,9 @@ int main() {
     printf("клавиша нажата\n");
     flag1 = 1;
     pthread_join(id1, NULL);
+
+    close(client_sock);
+    unlink("socket.soc");
 
     printf("программа сервера работу\n");
 }
