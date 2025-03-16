@@ -20,16 +20,23 @@ struct sockaddr_un addr;
 
 void * func1() {
     printf("поток начал работу\n");
-    int rcv_msg = -15;
+    char send_msg[50];
+    int i = 1;
     while(flag1 == 0) {
-        socklen_t slen = sizeof(addr);
+        long func_res = pathconf("./", _PC_NAME_MAX);
+        sprintf(send_msg, "Сообщение %d отправлено: %ld", i, func_res);
         addr.sun_family = AF_UNIX;
         strncpy(addr.sun_path,"socket.soc",sizeof(addr.sun_path) - 1);
-        int rv = recvfrom(server_sock, &rcv_msg, sizeof(&rcv_msg), 0, (struct sockaddr*)&addr, &slen);
-        if (rv == -1)
-            perror("rcv");
-        printf("%d\n", rcv_msg);
-        sleep(1);
+        int rv = sendto(server_sock, &send_msg, sizeof(send_msg), 0, (struct sockaddr*)&addr, sizeof(addr));
+        if (rv == -1) {
+            perror("snd");
+            sleep(1);
+        }
+        else {
+            printf("%s\n", send_msg);
+            sleep(1);
+        }
+        i++;
     }
     printf("поток закончил работу\n");
 }

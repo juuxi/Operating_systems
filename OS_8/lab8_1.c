@@ -13,29 +13,47 @@
 #include <sys/shm.h>
 #include <sys/queue.h>
 #include <sys/stat.h>
+#include <ctype.h>
 
-int flag1 = 0;
+int flag_rcv = 0;
 int client_sock;
 struct sockaddr_un addr;
 
 void * func1() {
-    printf("поток начал работу\n");
-    int send_msg = 1;
-    while(flag1 == 0) {
-        send_msg = pathconf("./", _PC_NAME_MAX);
+    printf("поток приема начал работу\n");
+    char rcv_msg[50];
+    while(flag_rcv == 0) {
+        socklen_t slen = sizeof(addr);
         addr.sun_family = AF_UNIX;
         strncpy(addr.sun_path,"socket.soc",sizeof(addr.sun_path) - 1);
-        int rv = sendto(client_sock, &send_msg, sizeof(int), 0, (struct sockaddr*)&addr, sizeof(addr));
-        if (rv == -1) {
-            perror("snd");
-            sleep(1);
+        int rv = recvfrom(client_sock, &rcv_msg, sizeof(rcv_msg), 0, (struct sockaddr*)&addr, &slen);
+        char* iter = rcv_msg;
+        long val = 0;
+        int i = 0;
+        while (!isdigit(*iter)) {
+            iter++;
         }
+        while (isdigit(*iter)) {
+            i = i*10+*iter-'0';
+            iter++;
+        }
+        while (!isdigit(*iter)) {
+            iter++;
+        }
+        while (isdigit(*iter)) {
+            val = val*10+*iter-'0';
+            iter++;
+        }
+        if (rv == -1)
+            perror("rcv");
         else {
-            printf("%d\n", send_msg);
-            sleep(1);
+            printf("%s\n", rcv_msg);
+            printf("%d\n", i);
+            printf("%ld\n", val);
         }
+        sleep(1);
     }
-    printf("поток закончил работу\n");
+    printf("поток приема закончил работу\n");
 }
 
 int main() {
@@ -59,7 +77,7 @@ int main() {
     printf("программа ждет нажатия клавиши\n");
     getchar();
     printf("клавиша нажата\n");
-    flag1 = 1;
+    flag_rcv = 1;
     pthread_join(id1, NULL);
 
     close(client_sock);
