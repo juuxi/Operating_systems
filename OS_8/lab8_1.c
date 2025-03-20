@@ -20,6 +20,7 @@
 int flag_rcv = 0;
 int flag_process = 0;
 int client_sock;
+int client_sock_2;
 struct sockaddr_un addr;
 struct sockaddr_un addr2;
 pthread_mutex_t mutex;
@@ -80,9 +81,10 @@ void * func2() {
             char send_msg[50];
             sprintf(send_msg, "Ответ на сообщение %d: %ld", i, func_res);
             addr2.sun_family = AF_UNIX;
-            strncpy(addr2.sun_path,"socket.soc",sizeof(addr2.sun_path) - 1);
-            addr.sun_path[sizeof(addr.sun_path) - 1] = '\0';
-            int rv = sendto(client_sock, send_msg, strlen(send_msg)+1, 0, (struct sockaddr*)&addr2, offsetof(struct sockaddr_un, sun_path) + strlen(addr2.sun_path));
+            strncpy(addr2.sun_path,"socket2.soc",sizeof(addr2.sun_path) - 1);
+            addr2.sun_path[sizeof(addr2.sun_path) - 1] = '\0';
+            int rv = sendto(client_sock_2, send_msg, strlen(send_msg)+1, 0, (struct sockaddr*)&addr2, sizeof(addr2));
+            printf("Ответ на сообщение %d отправлен: %ld\n", i, func_res);
             if (rv == -1) {
                 perror("send");
             }
@@ -112,6 +114,9 @@ int main() {
     setsockopt(client_sock, SOL_SOCKET, SO_REUSEADDR,
         &optval, sizeof(optval));
 
+    client_sock_2 = socket(AF_UNIX, SOCK_DGRAM, 0);
+    fcntl(client_sock_2, F_SETFL, O_NONBLOCK);
+
     STAILQ_INIT(&head);
 
     pthread_create(&id1, NULL, func1, NULL);
@@ -126,6 +131,8 @@ int main() {
 
     close(client_sock);
     unlink("socket.soc");
+    close(client_sock_2);
+    unlink("socket2.soc");
 
     printf("программа сервера закончила работу\n");
 }
