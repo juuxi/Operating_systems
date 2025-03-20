@@ -30,7 +30,8 @@ void * func1() {
         sprintf(send_msg, "Сообщение %d отправлено", i);
         addr.sun_family = AF_UNIX;
         strncpy(addr.sun_path,"socket.soc",sizeof(addr.sun_path) - 1);
-        int rv = sendto(server_sock, &send_msg, sizeof(send_msg), 0, (struct sockaddr*)&addr, sizeof(addr));
+        addr.sun_path[sizeof(addr.sun_path) - 1] = '\0';
+        int rv = sendto(server_sock, send_msg, strlen(send_msg) + 1, 0, (struct sockaddr*)&addr, sizeof(addr));
         if (rv == -1) {
             perror("snd");
             sleep(1);
@@ -51,7 +52,8 @@ void * func2() {
         socklen_t slen = sizeof(addr2);
         addr2.sun_family = AF_UNIX;
         strncpy(addr2.sun_path,"socket.soc",sizeof(addr2.sun_path) - 1);
-        int rv = recvfrom(server_sock, &rcv_msg, sizeof(rcv_msg), 0, (struct sockaddr*)&addr2, &slen);
+        addr.sun_path[sizeof(addr.sun_path) - 1] = '\0';
+        int rv = recvfrom(server_sock, rcv_msg, sizeof(rcv_msg), 0, (struct sockaddr*)&addr2, &slen);
         if (rv == -1) {
             perror("receive");
             sleep(1);
@@ -82,7 +84,7 @@ void * func2() {
 }
 
 int main() {
-    printf("программа сервера работу\n");
+    printf("программа клиента начала работу\n");
     pthread_t id1, id2;
 
     server_sock = socket(AF_UNIX, SOCK_DGRAM, 0);
@@ -101,5 +103,5 @@ int main() {
     close(server_sock);
     unlink("socket.soc");
 
-    printf("программа сервера работу\n");
+    printf("программа клиента закончила работу\n");
 }

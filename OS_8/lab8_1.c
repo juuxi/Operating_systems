@@ -16,11 +16,13 @@
 #include <sys/stat.h>
 #include <ctype.h>
 
+
 int flag_rcv = 0;
 int flag_process = 0;
 int client_sock;
 struct sockaddr_un addr;
 struct sockaddr_un addr2;
+pthread_mutex_t mutex;
 
 struct entry {
     char* msg;
@@ -31,22 +33,24 @@ STAILQ_HEAD(stailhead, entry);
 
 void * func1() {
     printf("поток приема начал работу\n");
-    char rcv_msg[50];
     while(flag_rcv == 0) {
         char rcv_msg[50];
         socklen_t slen = sizeof(addr);
         addr.sun_family = AF_UNIX;
         strncpy(addr.sun_path,"socket.soc",sizeof(addr.sun_path) - 1);
-        int rv = recvfrom(client_sock, &rcv_msg, sizeof(rcv_msg), 0, (struct sockaddr*)&addr, &slen);
+        addr.sun_path[sizeof(addr.sun_path) - 1] = '\0';
+        int rv = recvfrom(client_sock, rcv_msg, sizeof(rcv_msg), 0, (struct sockaddr*)&addr, &slen);
         if (rv == -1) {
             perror("receive");
             sleep(1);
         }
         else {
+            pthread_mutex_lock(&mutex);
             struct entry *ent_1;
             ent_1 = malloc(sizeof(struct entry));
             ent_1->msg = rcv_msg;
             STAILQ_INSERT_TAIL(&head, ent_1, entries);
+            pthread_mutex_unlock(&mutex);
         }
     }
     printf("поток приема закончил работу\n");
@@ -56,10 +60,12 @@ void * func2() {
     printf("поток обработки начал работу\n");
     while(flag_process == 0) {
         int i = 0;
+        pthread_mutex_lock(&mutex);
         if (!STAILQ_EMPTY(&head)) {
             struct entry *first_ent;
             first_ent = STAILQ_FIRST(&head);
             STAILQ_REMOVE_HEAD(&head, entries);
+            pthread_mutex_unlock(&mutex);
             char* iter = first_ent->msg;
             while (!isdigit(*iter)) {
                 iter++;
@@ -72,21 +78,26 @@ void * func2() {
             free(first_ent);
             long func_res = pathconf("./", _PC_NAME_MAX);
             char send_msg[50];
-            addr2.sun_family = AF_UNIX;
-            strncpy(addr.sun_path,"socket.soc",sizeof(addr2.sun_path) - 1);
             sprintf(send_msg, "Ответ на сообщение %d: %ld", i, func_res);
-            int rv = sendto(client_sock, &send_msg, sizeof(send_msg), 0, (struct sockaddr*)&addr2, sizeof(addr2));
+            addr2.sun_family = AF_UNIX;
+            strncpy(addr2.sun_path,"socket.soc",sizeof(addr2.sun_path) - 1);
+            addr.sun_path[sizeof(addr.sun_path) - 1] = '\0';
+            int rv = sendto(client_sock, send_msg, strlen(send_msg)+1, 0, (struct sockaddr*)&addr2, offsetof(struct sockaddr_un, sun_path) + strlen(addr2.sun_path));
             if (rv == -1) {
                 perror("send");
             }
+        }
+        else {
+            pthread_mutex_unlock(&mutex);
         }
     }
     printf("поток обработки закончил работу\n");
 }
 
 int main() {
-    printf("программа сервера работу\n");
+    printf("программа сервера начала работу\n");
     pthread_t id1, id2;
+    pthread_mutex_init(&mutex, NULL);
 
     client_sock = socket(AF_UNIX, SOCK_DGRAM, 0);
     fcntl(client_sock, F_SETFL, O_NONBLOCK);
@@ -116,5 +127,5 @@ int main() {
     close(client_sock);
     unlink("socket.soc");
 
-    printf("программа сервера работу\n");
+    printf("программа сервера закончила работу\n");
 }

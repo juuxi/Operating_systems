@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "functional": "c",
+        "un.h": "c",
+        "stat.h": "c",
+        "socket.h": "c"
+    }
+}
