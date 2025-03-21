@@ -36,11 +36,8 @@ void * func1() {
     printf("поток приема начал работу\n");
     while(flag_rcv == 0) {
         char rcv_msg[50];
-        socklen_t slen = sizeof(addr);
-        addr.sun_family = AF_UNIX;
-        strncpy(addr.sun_path,"socket.soc",sizeof(addr.sun_path) - 1);
-        addr.sun_path[sizeof(addr.sun_path) - 1] = '\0';
-        int rv = recvfrom(client_sock, rcv_msg, sizeof(rcv_msg), 0, (struct sockaddr*)&addr, &slen);
+        socklen_t slen = sizeof(addr2);
+        int rv = recvfrom(client_sock, rcv_msg, sizeof(rcv_msg), 0, (struct sockaddr*)&addr2, &slen);
         if (rv == -1) {
             perror("receive");
             sleep(1);
@@ -80,13 +77,12 @@ void * func2() {
             long func_res = pathconf("./", _PC_NAME_MAX);
             char send_msg[50];
             sprintf(send_msg, "Ответ на сообщение %d: %ld", i, func_res);
-            addr2.sun_family = AF_UNIX;
-            strncpy(addr2.sun_path,"socket2.soc",sizeof(addr2.sun_path) - 1);
-            addr2.sun_path[sizeof(addr2.sun_path) - 1] = '\0';
-            int rv = sendto(client_sock_2, send_msg, strlen(send_msg)+1, 0, (struct sockaddr*)&addr2, sizeof(addr2));
-            printf("Ответ на сообщение %d отправлен: %ld\n", i, func_res);
+            int rv = sendto(client_sock, send_msg, strlen(send_msg)+1, 0, (struct sockaddr*)&addr2, sizeof(addr2));
             if (rv == -1) {
                 perror("send");
+            }
+            else {
+                printf("Ответ на сообщение %d отправлен: %ld\n", i, func_res);
             }
         }
         else {
@@ -110,12 +106,6 @@ int main() {
     if (rv == -1) {
         perror("bind");
     }
-    int optval = 1;
-    setsockopt(client_sock, SOL_SOCKET, SO_REUSEADDR,
-        &optval, sizeof(optval));
-
-    client_sock_2 = socket(AF_UNIX, SOCK_DGRAM, 0);
-    fcntl(client_sock_2, F_SETFL, O_NONBLOCK);
 
     STAILQ_INIT(&head);
 
@@ -130,8 +120,8 @@ int main() {
     pthread_join(id2, NULL);
 
     close(client_sock);
-    unlink("socket.soc");
     close(client_sock_2);
+    unlink("socket.soc");
     unlink("socket2.soc");
 
     printf("программа сервера закончила работу\n");

@@ -18,10 +18,8 @@
 
 int flag_send = 0;
 int flag_receive = 0;
-int server_sock;
 int server_sock_2;
 struct sockaddr_un addr;
-struct sockaddr_un addr2;
 
 void * func1() {
     printf("поток отправки запросов начал работу\n");
@@ -32,7 +30,7 @@ void * func1() {
         addr.sun_family = AF_UNIX;
         strncpy(addr.sun_path,"socket.soc",sizeof(addr.sun_path) - 1);
         addr.sun_path[sizeof(addr.sun_path) - 1] = '\0';
-        int rv = sendto(server_sock, send_msg, strlen(send_msg) + 1, 0, (struct sockaddr*)&addr, sizeof(addr));
+        int rv = sendto(server_sock_2, send_msg, strlen(send_msg) + 1, 0, (struct sockaddr*)&addr, sizeof(addr));
         if (rv == -1) {
             perror("snd");
             sleep(1);
@@ -50,11 +48,8 @@ void * func2() {
     printf("поток обработки ответов начал работу\n");
     while (flag_receive == 0) {
         char rcv_msg[50];
-        socklen_t slen = sizeof(addr2);
-        addr2.sun_family = AF_UNIX;
-        strncpy(addr2.sun_path,"socket2.soc",sizeof(addr2.sun_path) - 1);
-        addr2.sun_path[sizeof(addr2.sun_path) - 1] = '\0';
-        int rv = recvfrom(server_sock_2, rcv_msg, sizeof(rcv_msg), 0, (struct sockaddr*)&addr2, &slen);
+        socklen_t slen = sizeof(addr);
+        int rv = recvfrom(server_sock_2, rcv_msg, sizeof(rcv_msg), 0, (struct sockaddr*)&addr, &slen);
         if (rv == -1) {
             perror("receive");
             sleep(1);
@@ -88,15 +83,12 @@ int main() {
     printf("программа клиента начала работу\n");
     pthread_t id1, id2;
 
-    server_sock = socket(AF_UNIX, SOCK_DGRAM, 0);
-    fcntl(server_sock, F_SETFL, O_NONBLOCK);
-
     server_sock_2 = socket(AF_UNIX, SOCK_DGRAM, 0);
     fcntl(server_sock_2, F_SETFL, O_NONBLOCK);
 
-    addr2.sun_family = AF_UNIX;
-    strncpy(addr2.sun_path,"socket2.soc",sizeof(addr2.sun_path) - 1);
-    int rv = bind(server_sock_2, (struct sockaddr*)&addr2, sizeof(addr2));
+    addr.sun_family = AF_UNIX;
+    strncpy(addr.sun_path,"socket2.soc",sizeof(addr.sun_path) - 1);
+    int rv = bind(server_sock_2, (struct sockaddr*)&addr, sizeof(addr));
     if (rv == -1) {
         perror("bind");
     }
@@ -114,9 +106,8 @@ int main() {
     pthread_join(id1, NULL);
     pthread_join(id2, NULL);
 
-    close(server_sock);
-    unlink("socket.soc");
     close(server_sock_2);
+    unlink("socket.soc");
     unlink("socket2.soc");
 
     printf("программа клиента закончила работу\n");
